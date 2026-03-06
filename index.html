@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PenPencil · API Client</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #2a2a3a;
+    --accent: #7c5cfc;
+    --accent2: #ff6b6b;
+    --accent3: #00d4aa;
+    --text: #e8e8f0;
+    --muted: #666680;
+    --success: #00d4aa;
+    --error: #ff6b6b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(124,92,252,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,92,252,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    max-width: 760px; margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  header { margin-bottom: 32px; animation: fadeDown 0.6s ease both; }
+
+  .logo-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.6; transform:scale(0.8); }
+  }
+
+  .method-badge {
+    font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+    background: rgba(255,107,107,0.15); color: var(--accent2);
+    border: 1px solid rgba(255,107,107,0.3);
+    padding: 3px 10px; border-radius: 4px; letter-spacing: 1px;
+  }
+
+  .endpoint-pill {
+    font-family: 'Space Mono', monospace; font-size: 12px;
+    color: var(--muted); background: var(--surface);
+    border: 1px solid var(--border); padding: 3px 12px; border-radius: 4px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 48px); font-weight: 800;
+    line-height: 1.05; letter-spacing: -1px;
+    background: linear-gradient(135deg, #fff 0%, rgba(124,92,252,0.9) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 10px;
+  }
+
+  .subtitle { font-size: 14px; color: var(--muted); }
+
+  /* ── TABS ── */
+  .tab-nav {
+    display: flex; gap: 4px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px; margin-bottom: 24px;
+    animation: fadeDown 0.4s ease 0.1s both;
+  }
+
+  .tab-btn {
+    flex: 1; padding: 11px 16px;
+    background: none; border: none; border-radius: 8px;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--muted); cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .tab-btn.active {
+    background: var(--card); color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  /* ── PANELS ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px;
+    position: relative; overflow: hidden;
+    animation: fadeUp 0.5s ease 0.05s both;
+    margin-bottom: 20px;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--accent);
+    margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+  }
+
+  .section-label::after { content:''; flex:1; height:1px; background: var(--border); }
+
+  .field-group { display: flex; flex-direction: column; gap: 18px; margin-bottom: 28px; }
+  .field { display: flex; flex-direction: column; gap: 7px; }
+
+  label {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;
+  }
+
+  label span.required { color: var(--accent2); font-size: 10px; font-family: 'Space Mono', monospace; }
+
+  .input-wrapper { position: relative; }
+
+  input, textarea {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 16px;
+    font-family: 'Space Mono', monospace; font-size: 13px; color: var(--text);
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none;
+  }
+
+  input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.5; }
+
+  input:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,92,252,0.12);
+  }
+
+  input.has-value { border-color: rgba(124,92,252,0.4); }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+  .token-input { padding-right: 48px; }
+
+  .toggle-btn {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    padding: 4px; font-size: 14px; line-height: 1; transition: color 0.2s;
+  }
+  .toggle-btn:hover { color: var(--text); }
+
+  .hint { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; opacity: 0.7; }
+
+  .divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+  /* ── SEND BUTTON ── */
+  .btn-send {
+    width: 100%; padding: 15px 32px;
+    background: var(--accent); border: none; border-radius: 10px;
+    color: white; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(124,92,252,0.35);
+  }
+  .btn-send::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent); pointer-events: none;
+  }
+  .btn-send:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(124,92,252,0.5); }
+  .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── SHARED BUTTON INTERNALS ── */
+  .btn-send .btn-inner, .btn-upload .btn-inner {
+    display: flex; align-items: center; justify-content: center; gap: 10px; transition: opacity 0.2s;
+  }
+  .btn-send.loading .btn-inner, .btn-upload.loading .btn-inner { opacity: 0; }
+
+  .spinner {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px; height: 20px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+    border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+  }
+  .btn-send.loading .spinner, .btn-upload.loading .spinner { display: block; }
+
+  @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+  /* ── RESPONSE CARD ── */
+  .response-card {
+    margin-top: 20px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 16px;
+    overflow: hidden; animation: fadeUp 0.4s ease both; display: none;
+  }
+  .response-card.visible { display: block; }
+
+  .response-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px; background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+
+  .status-row { display: flex; align-items: center; gap: 12px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .status-dot.success { background: var(--success); box-shadow: 0 0 8px var(--success); }
+  .status-dot.error   { background: var(--error);   box-shadow: 0 0 8px var(--error);   }
+
+  .status-code { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
+  .status-code.success { color: var(--success); }
+  .status-code.error   { color: var(--error);   }
+  .status-text { font-size: 13px; color: var(--muted); }
+
+  .copy-btn {
+    background: var(--border); border: none; border-radius: 6px;
+    color: var(--muted); padding: 6px 14px;
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .copy-btn:hover { background: var(--accent); color: white; }
+  .copy-btn.copied { background: var(--success); color: var(--bg); }
+
+  .response-body { padding: 22px; overflow-x: auto; }
+
+  pre {
+    font-family: 'Space Mono', monospace; font-size: 12px;
+    line-height: 1.7; color: var(--text); white-space: pre-wrap; word-break: break-all;
+  }
+
+  .json-key  { color: #7c9eff; }
+  .json-str  { color: #98e87c; }
+  .json-num  { color: #ffb347; }
+  .json-bool { color: #ff6b6b; }
+  .json-null { color: var(--muted); }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 14px;
+    padding: 44px 24px; text-align: center; cursor: pointer;
+    transition: all 0.25s; background: var(--surface); position: relative; overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent); background: rgba(124,92,252,0.05);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    width: 100%; height: 100%; padding: 0; border: none; background: transparent;
+  }
+  .upload-icon { font-size: 38px; margin-bottom: 12px; display: block; }
+  .upload-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .upload-sub { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  /* ── AUDIO PREVIEW ── */
+  .audio-preview {
+    margin-top: 18px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; display: none;
+  }
+  .audio-preview.visible { display: block; }
+
+  .audio-file-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .audio-file-icon { font-size: 24px; }
+  .audio-file-name { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text); flex: 1; word-break: break-all; }
+  .audio-file-size { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; white-space: nowrap; }
+
+  audio { width: 100%; height: 36px; accent-color: var(--accent); }
+
+  /* ── UPLOAD BUTTON ── */
+  .btn-upload {
+    width: 100%; margin-top: 20px; padding: 14px;
+    background: var(--accent3); border: none; border-radius: 10px;
+    color: #0a0a0f; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(0,212,170,0.3);
+  }
+  .btn-upload:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(0,212,170,0.45); }
+  .btn-upload:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-upload .spinner { border-color: rgba(0,0,0,0.2); border-top-color: #0a0a0f; width: 18px; height: 18px; }
+
+  /* ── HISTORY ── */
+  .history-empty {
+    text-align: center; padding: 32px;
+    color: var(--muted); font-family: 'Space Mono', monospace; font-size: 12px;
+    background: var(--surface); border: 1px dashed var(--border); border-radius: 12px;
+    line-height: 2;
+  }
+
+  .history-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+
+  .clear-all-btn {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    padding: 5px 14px; color: var(--muted);
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .clear-all-btn:hover { border-color: var(--error); color: var(--error); }
+
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .history-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    transition: border-color 0.2s; animation: fadeUp 0.3s ease both;
+  }
+  .history-item:hover { border-color: rgba(124,92,252,0.35); }
+
+  .history-item-icon { font-size: 20px; flex-shrink: 0; }
+
+  .history-item-info { flex: 1; min-width: 0; }
+  .history-item-name {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px;
+  }
+  .history-item-id {
+    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .history-item-date { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .history-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .btn-use {
+    padding: 6px 14px;
+    background: rgba(124,92,252,0.12); border: 1px solid rgba(124,92,252,0.3);
+    border-radius: 6px; color: var(--accent);
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .btn-use:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .btn-del {
+    padding: 6px 10px;
+    background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2);
+    border-radius: 6px; color: var(--error); font-size: 13px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-del:hover { background: var(--error); color: white; }
+
+  /* ── PILLS in comment tab ── */
+  .pills-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .pill-btn {
+    padding: 4px 12px; font-size: 10px;
+    background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.25);
+    border-radius: 20px; color: var(--accent3);
+    font-family: 'Space Mono', monospace; cursor: pointer; transition: all 0.2s;
+    white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pill-btn:hover { background: var(--accent3); color: #0a0a0f; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--card); border: 1px solid var(--success);
+    border-radius: 12px; padding: 14px 22px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px; font-weight: 600;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+    opacity: 0; z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast-sub { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent3); margin-top: 3px; }
+
+  .field-error { font-size: 11px; color: var(--error); font-family: 'Space Mono', monospace; display: none; }
+  input.invalid { border-color: var(--error) !important; }
+
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(20px);  } to { opacity:1; transform:translateY(0); } }
+
+  @media (max-width: 480px) {
+    .container { padding: 36px 14px 60px; }
+    .card { padding: 22px 16px; }
+    .history-item { flex-wrap: wrap; }
+    .history-actions { width: 100%; justify-content: flex-end; margin-top: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <div class="logo-row">
+      <div class="logo-dot"></div>
+      <span class="method-badge">POST</span>
+      <span class="endpoint-pill">api.penpencil.co</span>
+    </div>
+    <h1>PenPencil<br>API Client</h1>
+    <p class="subtitle">Upload audio files &amp; post comments to the community</p>
+  </header>
+
+  <!-- Tab navigation -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('upload')" id="tab-upload">🎵 Upload Audio</button>
+    <button class="tab-btn" onclick="switchTab('comment')" id="tab-comment">💬 Post Comment</button>
+  </div>
+
+  <!-- ═══════════════════════════════
+       PANEL 1: UPLOAD AUDIO
+  ═══════════════════════════════ -->
+  <div class="tab-panel active" id="panel-upload">
+
+    <!-- Auth -->
+    <div class="card">
+      <div class="section-label">Authentication</div>
+      <div class="field">
+        <label>Authorization Token <span class="required">required</span></label>
+        <div class="input-wrapper">
+          <input type="password" id="uploadToken" class="token-input"
+            placeholder="eyJ0eXAiOiJKV1QiLCJ..." autocomplete="off" spellcheck="false"/>
+          <button class="toggle-btn" onclick="toggleUploadToken()" id="toggleUploadBtn">👁</button>
+        </div>
+        <span class="hint">Bearer token — POST /v1/files</span>
+        <span class="field-error" id="uploadTokenError">Auth token is required</span>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="card">
+      <div class="section-label">Select Audio File</div>
+
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="audioFile" accept="audio/*" onchange="onFileSelect(event)"/>
+        <span class="upload-icon">🎧</span>
+        <div class="upload-title">Drop audio here or click to browse</div>
+        <div class="upload-sub">MP3 · WAV · AAC · OGG · FLAC · M4A</div>
+      </div>
+
+      <div class="audio-preview" id="audioPreview">
+        <div class="audio-file-row">
+          <span class="audio-file-icon">🔊</span>
+          <span class="audio-file-name" id="audioFileName">—</span>
+          <span class="audio-file-size" id="audioFileSize"></span>
+        </div>
+        <audio id="audioPlayer" controls></audio>
+      </div>
+
+      <button class="btn-upload" id="uploadBtn" onclick="uploadAudio()" disabled>
+        <div class="btn-inner"><span>⬆️</span><span>Upload to PenPencil</span></div>
+        <div class="spinner"></div>
+      </button>
+
+      <div class="response-card" id="uploadResponseCard">
+        <div class="response-header">
+          <div class="status-row">
+            <div class="status-dot" id="uploadStatusDot"></div>
+            <span class="status-code" id="uploadStatusCode"></span>
+            <span class="status-text" id="uploadStatusText"></span>
+          </div>
+          <button class="copy-btn" onclick="copyUploadResponse()">Copy</button>
+        </div>
+        <div class="response-body"><pre id="uploadResponseBody"></pre></div>
+      </div>
+    </div>
+
+    <!-- Saved Audio IDs -->
+    <div class="card">
+      <div class="section-label">Saved Audio IDs</div>
+      <div id="historyContainer"></div>
+    </div>
+
+  </div><!-- /panel-upload -->
+
+
+  <!-- ═══════════════════════════════
+       PANEL 2: POST COMMENT
+  ═══════════════════════════════ -->
+  <div class="tab-panel" id="panel-comment">
+    <div class="card">
+
+      <div class="section-label">Authentication</div>
+      <div class="field-group">
+        <div class="field">
+          <label>Authorization Token <span class="required">required</span></label>
+          <div class="input-wrapper">
+            <input type="password" id="authToken" class="token-input"
+              placeholder="eyJ0eXAiOiJKV1QiLCJ..." autocomplete="off" spellcheck="false"/>
+            <button class="toggle-btn" onclick="toggleToken()" id="toggleBtn">👁</button>
+          </div>
+          <span class="hint">Bearer token — POST /v1/comments</span>
+          <span class="field-error" id="authError">Auth token is required</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">Request Body</div>
+      <div class="field-group">
+        <div class="field">
+          <label>Type ID <span class="required">required</span></label>
+          <input type="text" id="typeId" placeholder="69a9859ef07991c2e554b68c" autocomplete="off" spellcheck="false"/>
+          <span class="field-error" id="typeIdError">Type ID is required</span>
+        </div>
+
+        <div class="field">
+          <label>Audio ID <span class="required">required</span></label>
+          <input type="text" id="audioId" placeholder="Paste ID or pick from saved ↓" autocomplete="off" spellcheck="false"/>
+          <div class="pills-row" id="savedAudioIdPills"></div>
+          <span class="field-error" id="audioIdError">Audio ID is required</span>
+        </div>
+
+        <div class="field">
+          <label>Type <span style="color:var(--muted);font-size:10px">default: COMMUNITY</span></label>
+          <input type="text" id="type" value="COMMUNITY" autocomplete="off" spellcheck="false"/>
+        </div>
+
+        <div class="field">
+          <label>Post Type <span style="color:var(--muted);font-size:10px">default: post</span></label>
+          <input type="text" id="postType" value="post" autocomplete="off" spellcheck="false"/>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">Payload Preview</div>
+      <div style="margin-bottom:28px;">
+        <pre id="preview" style="background:var(--surface);padding:14px;border-radius:10px;border:1px solid var(--border);font-size:12px;"></pre>
+      </div>
+
+      <button class="btn-send" id="sendBtn" onclick="sendRequest()">
+        <div class="btn-inner"><span>⚡</span><span>Send Request</span></div>
+        <div class="spinner"></div>
+      </button>
+    </div>
+
+    <div class="response-card" id="responseCard">
+      <div class="response-header">
+        <div class="status-row">
+          <div class="status-dot" id="statusDot"></div>
+          <span class="status-code" id="statusCode"></span>
+          <span class="status-text" id="statusText"></span>
+        </div>
+        <button class="copy-btn" id="copyBtn" onclick="copyResponse()">Copy</button>
+      </div>
+      <div class="response-body"><pre id="responseBody"></pre></div>
+    </div>
+  </div><!-- /panel-comment -->
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span style="font-size:20px">✅</span>
+  <div>
+    <div>Audio ID saved to history!</div>
+    <div class="toast-sub" id="toastId"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════
+
+function highlightJson(obj) {
+  const str = (typeof obj === 'string') ? obj : JSON.stringify(obj, null, 2);
+  return str.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+    if (/^"/.test(m)) return /:$/.test(m) ? `<span class="json-key">${m}</span>` : `<span class="json-str">${m}</span>`;
+    if (/true|false/.test(m)) return `<span class="json-bool">${m}</span>`;
+    if (/null/.test(m)) return `<span class="json-null">${m}</span>`;
+    return `<span class="json-num">${m}</span>`;
+  });
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+function formatDate(ts) {
+  return new Date(ts).toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const statusTexts = {
+  200:'OK', 201:'Created', 400:'Bad Request', 401:'Unauthorized',
+  403:'Forbidden', 404:'Not Found', 422:'Unprocessable Entity', 500:'Internal Server Error'
+};
+
+// ═══════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'comment') renderSavedPills();
+  // sync token if upload token is set and comment token is empty
+  const ut = document.getElementById('uploadToken').value;
+  const at = document.getElementById('authToken');
+  if (ut && !at.value) { at.value = ut; at.classList.toggle('has-value', true); }
+}
+
+// ═══════════════════════════════════════
+//  LOCAL STORAGE: AUDIO ID HISTORY
+// ═══════════════════════════════════════
+
+const LS_KEY = 'pp_audio_ids_v2';
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveHistory(arr) { localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+
+function addAudioIdToHistory(id, filename) {
+  if (!id) return;
+  const arr = loadHistory();
+  if (!arr.find(x => x.id === id)) {
+    arr.unshift({ id, filename: filename || 'Unknown file', ts: Date.now() });
+    saveHistory(arr);
+  }
+  renderHistory();
+  renderSavedPills();
+  showToast(id);
+}
+
+function deleteHistoryItem(id) {
+  saveHistory(loadHistory().filter(x => x.id !== id));
+  renderHistory();
+  renderSavedPills();
+}
+
+function clearAllHistory() {
+  if (!confirm('Delete all saved Audio IDs?')) return;
+  saveHistory([]);
+  renderHistory();
+  renderSavedPills();
+}
+
+function renderHistory() {
+  const arr = loadHistory();
+  const c = document.getElementById('historyContainer');
+  if (!arr.length) {
+    c.innerHTML = `<div class="history-empty">📭 No saved Audio IDs yet.<br>Upload a file and the ID will be saved automatically.</div>`;
+    return;
+  }
+  c.innerHTML = `
+    <div class="history-toolbar">
+      <button class="clear-all-btn" onclick="clearAllHistory()">🗑 Clear all</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  `;
+  const list = document.getElementById('historyList');
+  arr.forEach((item, i) => {
+    const d = document.createElement('div');
+    d.className = 'history-item';
+    d.style.animationDelay = (i * 0.04) + 's';
+    d.innerHTML = `
+      <span class="history-item-icon">🎵</span>
+      <div class="history-item-info">
+        <div class="history-item-name" title="${escHtml(item.filename)}">${escHtml(item.filename)}</div>
+        <div class="history-item-id">${escHtml(item.id)}</div>
+        <div class="history-item-date">${formatDate(item.ts)}</div>
+      </div>
+      <div class="history-actions">
+        <button class="btn-use" onclick="useAudioId('${escHtml(item.id)}', this)">Use ID</button>
+        <button class="btn-del" title="Delete" onclick="deleteHistoryItem('${escHtml(item.id)}')">✕</button>
+      </div>
+    `;
+    list.appendChild(d);
+  });
+}
+
+function renderSavedPills() {
+  const container = document.getElementById('savedAudioIdPills');
+  if (!container) return;
+  const arr = loadHistory().slice(0, 8);
+  if (!arr.length) { container.innerHTML = ''; return; }
+  container.innerHTML = arr.map(item =>
+    `<button class="pill-btn" onclick="fillAudioId('${escHtml(item.id)}')" title="${escHtml(item.id)}">
+      🎵 ${escHtml(item.filename.length > 20 ? item.filename.slice(0,20) + '…' : item.filename)}
+    </button>`
+  ).join('');
+}
+
+function fillAudioId(id) {
+  const inp = document.getElementById('audioId');
+  inp.value = id;
+  inp.classList.add('has-value');
+  inp.classList.remove('invalid');
+  document.getElementById('audioIdError').style.display = 'none';
+  updatePreview();
+  inp.style.borderColor = 'var(--accent3)';
+  inp.style.boxShadow = '0 0 0 3px rgba(0,212,170,0.18)';
+  setTimeout(() => { inp.style.borderColor = ''; inp.style.boxShadow = ''; }, 1400);
+}
+
+function useAudioId(id, btn) {
+  fillAudioId(id);
+  switchTab('comment');
+}
+
+// ═══════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════
+
+function showToast(id) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastId').textContent = id;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ═══════════════════════════════════════
+//  UPLOAD SECTION
+// ═══════════════════════════════════════
+
+let selectedFile = null;
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('audio/')) setFile(f);
+  else alert('Please drop an audio file.');
+});
+
+function onFileSelect(e) {
+  const f = e.target.files[0];
+  if (f) setFile(f);
+}
+
+function setFile(f) {
+  selectedFile = f;
+  document.getElementById('audioFileName').textContent = f.name;
+  document.getElementById('audioFileSize').textContent = formatBytes(f.size);
+  document.getElementById('audioPlayer').src = URL.createObjectURL(f);
+  document.getElementById('audioPreview').classList.add('visible');
+  document.getElementById('uploadBtn').disabled = false;
+}
+
+function toggleUploadToken() {
+  const inp = document.getElementById('uploadToken');
+  const btn = document.getElementById('toggleUploadBtn');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// Try common shapes to extract audio ID
+function extractId(data) {
+  if (!data || typeof data !== 'object') return null;
+  if (data._id) return data._id;
+  if (data.id) return data.id;
+  if (data.audioId) return data.audioId;
+  if (data.fileId) return data.fileId;
+  if (data.data) {
+    const d = data.data;
+    return d._id || d.id || d.audioId || d.fileId || null;
+  }
+  return null;
+}
+
+async function uploadAudio() {
+  const token = document.getElementById('uploadToken').value.trim();
+  if (!token) {
+    document.getElementById('uploadToken').classList.add('invalid');
+    document.getElementById('uploadTokenError').style.display = 'block';
+    return;
+  }
+  document.getElementById('uploadToken').classList.remove('invalid');
+  document.getElementById('uploadTokenError').style.display = 'none';
+  if (!selectedFile) return;
+
+  const btn = document.getElementById('uploadBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+
+  try {
+    const res = await fetch('https://api.penpencil.co/v1/files', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: fd
+    });
+
+    let data;
+    const text = await res.text();
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+    showUploadResponse(res.status, data, res.ok);
+
+    if (res.ok) {
+      const id = extractId(data);
+      if (id) addAudioIdToHistory(id, selectedFile.name);
+    }
+  } catch (err) {
+    showUploadResponse(0, { error: err.message, hint: 'Network error or CORS blocked. Try via a backend proxy.' }, false);
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+function showUploadResponse(code, data, isOk) {
+  const card = document.getElementById('uploadResponseCard');
+  const cls = isOk ? 'success' : 'error';
+  document.getElementById('uploadStatusDot').className = `status-dot ${cls}`;
+  document.getElementById('uploadStatusCode').className = `status-code ${cls}`;
+  document.getElementById('uploadStatusCode').textContent = code || 'ERR';
+  document.getElementById('uploadStatusText').textContent = statusTexts[code] || (isOk ? 'Success' : 'Failed');
+  document.getElementById('uploadResponseBody').innerHTML = highlightJson(data);
+  card.classList.add('visible');
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function copyUploadResponse() {
+  const text = document.getElementById('uploadResponseBody').textContent;
+  navigator.clipboard.writeText(text);
+}
+
+// ═══════════════════════════════════════
+//  MANUAL SAVE AUDIO ID (from history tab)
+// ═══════════════════════════════════════
+// Users can also manually add an ID if they know it
+function manualSave() {
+  const id = prompt('Paste an Audio ID to save:');
+  const name = id ? prompt('Give it a label / filename:') || 'Manual entry' : null;
+  if (id && id.trim()) addAudioIdToHistory(id.trim(), name);
+}
+
+// ═══════════════════════════════════════
+//  COMMENT SECTION
+// ═══════════════════════════════════════
+
+['typeId','audioId','type','postType'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    updatePreview();
+    el.classList.toggle('has-value', !!el.value);
+  });
+});
+
+document.getElementById('authToken').addEventListener('input', function() {
+  this.classList.toggle('has-value', !!this.value);
+});
+
+function getPayload() {
+  return {
+    typeId: document.getElementById('typeId').value.trim(),
+    type: document.getElementById('type').value.trim() || 'COMMUNITY',
+    audioId: document.getElementById('audioId').value.trim(),
+    post_type: document.getElementById('postType').value.trim() || 'post'
+  };
+}
+
+function updatePreview() {
+  document.getElementById('preview').innerHTML = highlightJson(getPayload());
+}
+
+function toggleToken() {
+  const inp = document.getElementById('authToken');
+  const btn = document.getElementById('toggleBtn');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+function validate() {
+  let ok = true;
+  [['authToken','authError'],['typeId','typeIdError'],['audioId','audioIdError']].forEach(([id, eid]) => {
+    const el = document.getElementById(id);
+    const err = document.getElementById(eid);
+    if (!el.value.trim()) { el.classList.add('invalid'); err.style.display = 'block'; ok = false; }
+    else { el.classList.remove('invalid'); err.style.display = 'none'; }
+  });
+  return ok;
+}
+
+async function sendRequest() {
+  if (!validate()) return;
+  const btn = document.getElementById('sendBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+  const token = document.getElementById('authToken').value.trim();
+  try {
+    const res = await fetch('https://api.penpencil.co/v1/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(getPayload())
+    });
+    let data;
+    const text = await res.text();
+    try { data = JSON.parse(text); } catch { data = text; }
+    showResponse(res.status, data, res.ok);
+  } catch (err) {
+    showResponse(0, { error: err.message, hint: 'Network error or CORS blocked.' }, false);
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+function showResponse(code, data, isOk) {
+  const cls = isOk ? 'success' : 'error';
+  document.getElementById('statusDot').className = `status-dot ${cls}`;
+  document.getElementById('statusCode').className = `status-code ${cls}`;
+  document.getElementById('statusCode').textContent = code || 'ERR';
+  document.getElementById('statusText').textContent = statusTexts[code] || (isOk ? 'Success' : 'Failed');
+  document.getElementById('responseBody').innerHTML = highlightJson(data);
+  const card = document.getElementById('responseCard');
+  card.classList.add('visible');
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function copyResponse() {
+  const text = document.getElementById('responseBody').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+['authToken','typeId','audioId'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    this.classList.remove('invalid');
+    const m = { authToken:'authError', typeId:'typeIdError', audioId:'audioIdError' };
+    if (m[id]) document.getElementById(m[id]).style.display = 'none';
+  });
+});
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+updatePreview();
+renderHistory();
+renderSavedPills();
+</script>
+</body>
+</html>
